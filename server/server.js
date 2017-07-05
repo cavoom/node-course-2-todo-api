@@ -1,6 +1,8 @@
-var express = require('express');
-var bodyParser = require('body-parser');
-var {ObjectID} = require('mongodb');
+const _=require('lodash');
+
+const express = require('express');
+const bodyParser = require('body-parser');
+const {ObjectID} = require('mongodb');
 
 var {mongoose} = require('./db/mongoose');
 var {Todo} = require('./models/todo');
@@ -67,7 +69,34 @@ var id = req.params.id;
   });
 });
 
+app.patch('/todos/:id', (req, res) =>{
+  var id = req.params.id;
+  var body = _.pick(req.body, ['text', 'completed']); // lodash limits changing only the properties defined here (text and completed)
 
+  if(!ObjectID.isValid(id)){
+    return res.statis(404).send();
+  }
+
+if(_.isBoolean(body.completed) && body.completed) {
+body.completedAt = new Date().getTime();
+} else {
+  body.completed = false;
+  body.CompletedAt = null;
+}
+
+Todo.findByIdAndUpdate(id, {$set: body}, {new: true}).then((todo)=>{
+if(!todo){
+  return res.status(404).send();
+}
+
+res.send({todo});
+
+}).catch((e)=>{
+  res.status(400).send();
+
+})
+
+});
 
 app.listen(port, () => {
   console.log(`Started up at port ${port}`);
