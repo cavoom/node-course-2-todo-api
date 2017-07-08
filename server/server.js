@@ -1,6 +1,6 @@
-require('./config/config.js');
+require('./config/config');
 
-const _=require('lodash');
+const _ = require('lodash');
 const express = require('express');
 const bodyParser = require('body-parser');
 const {ObjectID} = require('mongodb');
@@ -53,7 +53,7 @@ app.get('/todos/:id', (req, res) => {
 });
 
 app.delete('/todos/:id', (req, res) => {
-var id = req.params.id;
+  var id = req.params.id;
 
   if (!ObjectID.isValid(id)) {
     return res.status(404).send();
@@ -70,33 +70,44 @@ var id = req.params.id;
   });
 });
 
-app.patch('/todos/:id', (req, res) =>{
+app.patch('/todos/:id', (req, res) => {
   var id = req.params.id;
-  var body = _.pick(req.body, ['text', 'completed']); // lodash limits changing only the properties defined here (text and completed)
+  var body = _.pick(req.body, ['text', 'completed']);
 
-  if(!ObjectID.isValid(id)){
-    return res.statis(404).send();
+  if (!ObjectID.isValid(id)) {
+    return res.status(404).send();
   }
 
-if(_.isBoolean(body.completed) && body.completed) {
-body.completedAt = new Date().getTime();
-} else {
-  body.completed = false;
-  body.CompletedAt = null;
-}
+  if (_.isBoolean(body.completed) && body.completed) {
+    body.completedAt = new Date().getTime();
+  } else {
+    body.completed = false;
+    body.completedAt = null;
+  }
 
-Todo.findByIdAndUpdate(id, {$set: body}, {new: true}).then((todo)=>{
-if(!todo){
-  return res.status(404).send();
-}
+  Todo.findByIdAndUpdate(id, {$set: body}, {new: true}).then((todo) => {
+    if (!todo) {
+      return res.status(404).send();
+    }
 
-res.send({todo});
+    res.send({todo});
+  }).catch((e) => {
+    res.status(400).send();
+  })
+});
 
-}).catch((e)=>{
-  res.status(400).send();
+// POST /users
+app.post('/users', (req, res) => {
+  var body = _.pick(req.body, ['email', 'password']);
+  var user = new User(body);
 
-})
-
+  user.save().then(() => {
+    return user.generateAuthToken();
+  }).then((token) => {
+    res.header('x-auth', token).send(user);
+  }).catch((e) => {
+    res.status(400).send(e);
+  })
 });
 
 app.listen(port, () => {
